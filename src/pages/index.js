@@ -25,7 +25,20 @@ const IndexPage = () => {
    */
 
   async function mapEffect({ leafletElement } = {}) {
+    // Get rid of everything in here
     if ( !leafletElement ) return;
+    let santa, santaJson, route, routeJson;
+    try {
+      santa = await fetch('https://santa-api.appspot.com/info?client=web&language=en&fingerprint=&routeOffset=0&streamOffset=0');
+      santaJson = await santa.json();
+      route = await fetch(santaJson.route);
+      routeJson = await route.json();
+    } catch(e) {
+      throw new Error(`Failed to find Santa!: ${e}`)
+    }
+    const { destinations } = routeJson;
+    const destinationsWithPresents = destinations.filter(({presentsDelivered}) => presentsDelivered > 0);
+    const lastKnownDestination = destinationsWithPresents[destinationsWithPresents.length - 1]
   }
 
   const mapSettings = {
