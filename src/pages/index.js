@@ -1,23 +1,19 @@
 import React from 'react';
 import Helmet from 'react-helmet';
 import L from 'leaflet';
-import { Marker } from 'react-leaflet';
 
 import Layout from 'components/Layout';
 import Container from 'components/Container';
 import Map from 'components/Map';
-
 
 const LOCATION = {
   lat: 38.9072,
   lng: -77.0369
 };
 const CENTER = [LOCATION.lat, LOCATION.lng];
-const DEFAULT_ZOOM = 2;
-
+const DEFAULT_ZOOM = 1;
 
 const IndexPage = () => {
-
   /**
    * mapEffect
    * @description Fires a callback once the page renders
@@ -25,7 +21,6 @@ const IndexPage = () => {
    */
 
   async function mapEffect({ leafletElement } = {}) {
-    // Get rid of everything in here
     if ( !leafletElement ) return;
     let santa, santaJson, route, routeJson;
     try {
@@ -36,9 +31,53 @@ const IndexPage = () => {
     } catch(e) {
       throw new Error(`Failed to find Santa!: ${e}`)
     }
+
+    // Grab Santa's route destinations, determine which ones have presents, and figure out his last known
+    // location where he delivered a present
+
     const { destinations } = routeJson;
     const destinationsWithPresents = destinations.filter(({presentsDelivered}) => presentsDelivered > 0);
     const lastKnownDestination = destinationsWithPresents[destinationsWithPresents.length - 1]
+
+    // Create a Leaflet LatLng instance using that location
+
+    const santaLocation = new L.LatLng( lastKnownDestination.location.lat, lastKnownDestination.location.lng );
+
+    // Create a Leaflet Market instance using Santa's LatLng location
+
+    const santaMarker = L.marker( santaLocation, {
+      icon: L.divIcon({
+        className: 'icon',
+        html: `<div class="icon-santa">🎅</div>`,
+        iconSize: 50
+      })
+    });
+
+    // Add Santa to the map!
+
+    santaMarker.addTo(leafletElement);
+
+    // Create a set of LatLng coordinates that make up Santa's route
+
+    const santasRouteLatLngs = destinationsWithPresents.map(destination => {
+      const { location } = destination;
+      const { lat, lng } = location;
+      return new L.LatLng( lat, lng );
+    });
+
+    // Utilize Leaflet's Polyline to add the route to the map
+
+    const santasRoute = new L.Polyline( santasRouteLatLngs, {
+      weight: 2,
+      color: 'green',
+      opacity: 1,
+      fillColor: 'green',
+      fillOpacity: 0.5
+    });
+
+    // Add Santa to the map!
+
+    santasRoute.addTo(leafletElement);
   }
 
   const mapSettings = {
@@ -54,9 +93,7 @@ const IndexPage = () => {
         <title>Home Page</title>
       </Helmet>
 
-      <Map {...mapSettings}>
-       
-      </Map>
+      <Map {...mapSettings} />
 
       <Container type="content" className="text-center home-start">
         <h2>Still Getting Started?</h2>
